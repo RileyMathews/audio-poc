@@ -7,7 +7,7 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 2
 RATE = 44100
 RECORD_SECONDS = 5
-WAVE_OUTPUT_FILENAME = "output.wav"
+WAVE_OUTPUT_FILENAME = "samples/chord.wav"
 
 def distort(amplitudes):
     amplitude_stages = list(data)
@@ -37,7 +37,7 @@ frames = []
 
 for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
     data = stream.read(CHUNK)
-    data = distort(data)
+    # data = distort(data)
     frames.append(data)
 
 print("* done recording")
