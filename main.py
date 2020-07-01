@@ -1,54 +1,33 @@
+"""PyAudio Example: Play a wave file."""
 
 import pyaudio
 import wave
+import sys
 
 CHUNK = 1024
-FORMAT = pyaudio.paInt16
-CHANNELS = 2
-RATE = 44100
-RECORD_SECONDS = 5
-WAVE_OUTPUT_FILENAME = "samples/chord.wav"
 
-def distort(amplitudes):
-    amplitude_stages = list(data)
-    for i in range(len(amplitude_stages)):
-        if amplitude_stages[i] > 127:
-            amplitude_stages[i] += 20
-            if amplitude_stages[i] > 255:
-                amplitude_stages[i] = 255
-        else:
-            amplitude_stages[i] -= 20
-            if amplitude_stages[i] < 0:
-                amplitude_stages[i] = 0
-    print(amplitude_stages)
-    return bytes(amplitude_stages)
+wf = wave.open("samples/chord.wav", 'rb')
 
+# instantiate PyAudio (1)
 p = pyaudio.PyAudio()
 
-stream = p.open(format=FORMAT,
-                channels=CHANNELS,
-                rate=RATE,
-                input=True,
-                frames_per_buffer=CHUNK)
+# open stream (2)
+stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
+                channels=wf.getnchannels(),
+                rate=wf.getframerate(),
+                output=True)
 
-print("* recording")
+# read data
+data = wf.readframes(CHUNK)
 
-frames = []
+# play stream (3)
+while len(data) > 0:
+    stream.write(data)
+    data = wf.readframes(CHUNK)
 
-for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
-    data = stream.read(CHUNK)
-    # data = distort(data)
-    frames.append(data)
-
-print("* done recording")
-
+# stop stream (4)
 stream.stop_stream()
 stream.close()
-p.terminate()
 
-wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-wf.setnchannels(CHANNELS)
-wf.setsampwidth(p.get_sample_size(FORMAT))
-wf.setframerate(RATE)
-wf.writeframes(b''.join(frames))
-wf.close()
+# close PyAudio (5)
+p.terminate()
