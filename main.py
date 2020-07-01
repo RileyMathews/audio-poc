@@ -1,78 +1,33 @@
-"""PyAudio Example: Play a wave file."""
+from os.path import dirname, join as pjoin
+from scipy.io import wavfile
+import scipy.io
+import matplotlib.pyplot as plt
+import numpy as np
 
-import pyaudio
-import wave
-import sys
-import os
+def distort(data):
+    data_copy = data
+    for i in range(len(data_copy)):
+        if data_copy[i][0] > 0.6:
+            data_copy[i][0] = 0.6
+            data_copy[i][1] = 0.6
+        if data_copy[i][0] < -0.6:
+            data_copy[i][0] = -0.6
+            data_copy[i][1] = -0.6
+    return data_copy
 
-DISTORTION_RATE = 1
-ZERO_VOLTAGE_AMPLITUDE = 32768
-MAXIMUM_AMPLITUDE = 65535
-
-def distort_amplitude(amplitude):
-    new_amplitude = amplitude
-    if new_amplitude > ZERO_VOLTAGE_AMPLITUDE:
-        new_amplitude += DISTORTION_RATE
-        if new_amplitude > MAXIMUM_AMPLITUDE:
-            new_amplitude = MAXIMUM_AMPLITUDE
-    else:
-        new_amplitude -= DISTORTION_RATE
-        if new_amplitude < 0:
-            new_amplitude = 0
-    print(f"{amplitude} -> {new_amplitude}")
-    return new_amplitude
-
-def frames_matrix_to_bytes(matrix):
-    flat_array = lambda matrix: [item for sublist in matrix for item in sublist]
-    return bytes(flat_array(matrix))
-
-
-def distort(frames):
-    new_frames = []
-    for i in range(len(frames)):
-        frame = frames[i]
-        left_channel_frame = [frame[0], frame[1]]
-        right_channel_frame = [frame[2], frame[3]]
-
-        left_channel_amplitude = list(distort_amplitude(int.from_bytes(bytes(left_channel_frame), byteorder="big")).to_bytes(2, "big"))
-        right_channel_amplitude = list(distort_amplitude(int.from_bytes(bytes(right_channel_frame), byteorder="big")).to_bytes(2, "big"))
-
-        new_frames.append([left_channel_amplitude[0], left_channel_amplitude[1], right_channel_amplitude[0], right_channel_amplitude[1]])
-    
-    return new_frames
-
-        
-
-
-def play_file(name):
-    wf = wave.open(f"samples/{name}", 'rb')
-
-    # instantiate PyAudio (1)
-    p = pyaudio.PyAudio()
-
-    # open stream (2)
-    stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
-                    channels=wf.getnchannels(),
-                    rate=wf.getframerate(),
-                    output=True)
-
-    frames_matrix = []
-    for i in range(wf.getnframes()):
-        frames_matrix.append(list(wf.readframes(1)))
-
-    frames_matrix = distort(frames_matrix)
-    new_bytes = frames_matrix_to_bytes(frames_matrix)
-    stream.write(new_bytes)
-
-    stream.stop_stream()
-    stream.close()
-
-    p.terminate()
-
-    wf.close()
-
-
-
-for file in os.listdir("./samples"):
-    print(file)
-    play_file(file)
+data_dir = pjoin(dirname(scipy.io.__file__), 'tests', 'data')
+wav_fname = pjoin(data_dir, 'test-44100Hz-2ch-32bit-float-be.wav')
+samplerate, data = wavfile.read(wav_fname)
+print(f"number of channels = {data.shape[1]}")
+length = data.shape[0] / samplerate
+print(f"length = {length}s")
+time = np.linspace(0., length, data.shape[0])
+distorted_data = distort(data)
+plt.plot(time, data[:, 0], label="Left channel")
+plt.plot(time, data[:, 1], label="Right channel")
+plt.plot(time, distorted_data[:, 0], label="Left Channel dist")
+plt.plot(time, distorted_data[:, 1], label="Right Channel dist")
+plt.legend()
+plt.xlabel("Time [s]")
+plt.ylabel("Amplitude")
+plt.show()
