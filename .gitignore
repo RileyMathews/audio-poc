@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # output wave files
-output
+output.wav
